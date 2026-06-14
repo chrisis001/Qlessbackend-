@@ -11,20 +11,33 @@ export default {
       return new Response(null, { headers });
     }
 
-    if(url.pathname.startsWith("/order/") && request.method=="POST"){
-       const mtejaID = url.pathname.split("/")[2];
-       const order = await request.json();
-       let orders = await env.QLESS_KV.get("orders_" + mtejaID, {type:"json"}) || [];
-       orders.unshift({...order, id: Date.now(), time: new Date().toISOString()});
-       await env.QLESS_KV.put("orders_" + mtejaID, JSON.stringify(orders));
-       return new Response(JSON.stringify({success:1}), { headers });
+    // HII NDIO ROUTE INAKOSEKANA BOSS
+    if (url.pathname === '/owner/stats' || url.pathname === '/orders/stats') {
+      const stats = {
+        totalOrders: 0,
+        totalRevenue: 0,
+        todayOrders: 0,
+        todayRevenue: 0
+      };
+      return new Response(JSON.stringify(stats), {
+        headers: {...headers, 'Content-Type': 'application/json' }
+      });
     }
 
-    if(url.pathname.startsWith("/dashboard/")){
-       const mtejaID = url.pathname.split("/")[2];
-       const orders = await env.QLESS_KV.get("orders_" + mtejaID, {type:"json"}) || [];
-       const html = `<h1>Dashboard: ${mtejaID}</h1><p>Orders: ${orders.length}</p>`;
-       return new Response(html, { headers:{'Content-Type':'text/html',...headers} });
+    if(url.pathname.startsWith("/order/") && request.method === 'POST') {
+      const mtejaID = url.pathname.split("/")[2];
+      const order = await request.json();
+      let orders = await env.QLESS_KV.get("orders_" + mtejaID, "json") || [];
+      orders.unshift({...order, id: Date.now()});
+      await env.QLESS_KV.put("orders_" + mtejaID, JSON.stringify(orders));
+      return new Response(JSON.stringify({success: true}), { headers });
+    }
+
+    if(url.pathname.startsWith("/dashboard/")) {
+      const mtejaID = url.pathname.split("/")[2];
+      const orders = await env.QLESS_KV.get("orders_" + mtejaID, "json") || [];
+      const html = `<h1>Dashboard: ${mtejaID}</h1><pre>${JSON.stringify(orders, null, 2)}</pre>`;
+      return new Response(html, { headers: {...headers, 'Content-Type': 'text/html'} });
     }
 
     return new Response("QLESS API Iko Live", { headers });
